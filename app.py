@@ -102,11 +102,35 @@ def process_uploaded_files(uploaded_files):
     return modalities
 
 # Function to prepare input for model
+# def prepare_input(modalities):
+#     # Check we have all required modalities
+#     required = ['t1n', 't1c', 't2f', 't2w']
+#     if not all(m in modalities for m in required):
+#         return None, None
+    
+#     # Combine modalities
+#     combined = np.stack([
+#         modalities['t1n'],
+#         modalities['t1c'],
+#         modalities['t2f'],
+#         modalities['t2w']
+#     ], axis=3)
+    
+#     # First crop to original expected size (128, 128, 128, 4)
+#     combined = combined[56:184, 56:184, 13:141, :]
+#     original_shape = combined.shape
+    
+#     # Then resize to model's expected input shape (64, 64, 64, 4)
+#     # Using simple downsampling for CPU compatibility
+#     downsampled = combined[::2, ::2, ::2, :]
+    
+#     return downsampled, original_shape, combined
+
 def prepare_input(modalities):
     # Check we have all required modalities
     required = ['t1n', 't1c', 't2f', 't2w']
     if not all(m in modalities for m in required):
-        return None, None
+        return None, None, None
     
     # Combine modalities
     combined = np.stack([
@@ -116,15 +140,21 @@ def prepare_input(modalities):
         modalities['t2w']
     ], axis=3)
     
-    # First crop to original expected size (128, 128, 128, 4)
-    combined = combined[56:184, 56:184, 13:141, :]
     original_shape = combined.shape
     
-    # Then resize to model's expected input shape (64, 64, 64, 4)
-    # Using simple downsampling for CPU compatibility
-    downsampled = combined[::2, ::2, ::2, :]
+    # Calculate zoom factors to reach (96, 96, 96)
+    # Target is 96, 96, 96, 4
+    zoom_factors = (
+        96 / combined.shape[0],
+        96 / combined.shape[1],
+        96 / combined.shape[2],
+        1 # Don't scale the 4 channels
+    )
     
-    return downsampled, original_shape, combined
+    # Precise resizing
+    input_data = zoom(combined, zoom_factors, order=1) 
+    
+    return input_data, original_shape, combined
 
 # Function to make prediction
 def make_prediction(model, input_data):
