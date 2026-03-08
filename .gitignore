@@ -1,0 +1,13 @@
+# Ignore large datasets
+BraTS-Africa/
+glioma/
+glioma split data/
+
+# Ignore notebooks if not needed
+*.ipynb
+
+# Ignore training history
+model_history/
+
+# Ignore Python cache
+__pycache__/
